@@ -1,5 +1,17 @@
 import { FileEntry } from "@/types"
-import * as path from "path"
+
+// Edge-compatible path utilities (paths are always POSIX `/` format)
+function extname(filePath: string): string {
+  const lastDot = filePath.lastIndexOf('.')
+  const lastSlash = filePath.lastIndexOf('/')
+  if (lastDot <= lastSlash + 1) return ''
+  return filePath.slice(lastDot)
+}
+
+function basename(filePath: string): string {
+  const lastSlash = filePath.lastIndexOf('/')
+  return lastSlash === -1 ? filePath : filePath.slice(lastSlash + 1)
+}
 
 // Directories to completely exclude
 const EXCLUDED_DIRS = new Set([
@@ -95,25 +107,25 @@ const PRIORITY_PATTERNS: Array<{ pattern: RegExp; priority: number }> = [
 ]
 
 export function shouldExcludePath(filePath: string): boolean {
-  const parts = filePath.split(path.sep)
+  const parts = filePath.split('/')
   return parts.some((part) => EXCLUDED_DIRS.has(part))
 }
 
 export function isBinaryFile(filePath: string): boolean {
-  const ext = path.extname(filePath).toLowerCase()
+  const ext = extname(filePath).toLowerCase()
   return BINARY_EXTENSIONS.has(ext)
 }
 
 export function detectLanguage(filePath: string): string {
-  const ext = path.extname(filePath).toLowerCase()
-  if (ext === "" && path.basename(filePath).toLowerCase() === "dockerfile") {
+  const ext = extname(filePath).toLowerCase()
+  if (ext === "" && basename(filePath).toLowerCase() === "dockerfile") {
     return "dockerfile"
   }
   return EXTENSION_TO_LANGUAGE[ext] || "text"
 }
 
 export function getFilePriority(filePath: string): number {
-  const filename = path.basename(filePath).toLowerCase()
+  const filename = basename(filePath).toLowerCase()
   const relativePath = filePath.toLowerCase()
 
   // Check priority patterns against filename and full path
@@ -124,7 +136,7 @@ export function getFilePriority(filePath: string): number {
   }
 
   // Default priority based on directory depth (shallower = higher priority)
-  const depth = filePath.split(path.sep).length
+  const depth = filePath.split('/').length
   return 20 + Math.min(depth * 2, 20)
 }
 

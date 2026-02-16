@@ -1,13 +1,11 @@
-import { getSession } from "@/lib/anthropic"
-import { anthropic } from "@/lib/anthropic"
+import { getSession, setSession, anthropic } from "@/lib/anthropic"
 import { QA_SYSTEM_PROMPT } from "@/lib/prompts"
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 120
 
 export async function POST(req: Request) {
   try {
-    const { sessionId, query, effort = "high" } = await req.json()
+    const { sessionId, query, effort = "high" } = await req.json<{ sessionId?: string; query?: string; effort?: string }>()
 
     if (!sessionId || !query) {
       return new Response(
@@ -16,7 +14,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const session = getSession(sessionId)
+    const session = await getSession(sessionId)
     if (!session) {
       return new Response(
         JSON.stringify({ error: "Session not found. Please ingest a repo first." }),
@@ -84,11 +82,12 @@ export async function POST(req: Request) {
             }
           }
 
-          // Update conversation history
+          // Update conversation history and persist to KV
           session.messages.push(
             { role: "user", content: query },
             { role: "assistant", content: fullText }
           )
+          await setSession(sessionId, session)
 
           controller.close()
         } catch (err) {

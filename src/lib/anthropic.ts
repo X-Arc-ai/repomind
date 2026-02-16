@@ -1,40 +1,38 @@
 import Anthropic from "@anthropic-ai/sdk"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { RepoMetadata, SessionData } from "@/types"
-import { randomUUID } from "crypto"
 
 export const anthropic = new Anthropic()
 
-// Use globalThis to persist sessions across hot reloads and route handlers
-const g = globalThis as unknown as {
-  __repomind_sessions__?: Map<string, SessionData>
-  __repomind_cleanup__?: ReturnType<typeof setInterval>
+function getKV(): KVNamespace {
+  const { env } = getCloudflareContext()
+  return env.SESSIONS_KV
 }
 
-if (!g.__repomind_sessions__) {
-  g.__repomind_sessions__ = new Map<string, SessionData>()
+export async function getSession(sessionId: string): Promise<SessionData | null> {
+  const kv = getKV()
+  return await kv.get<SessionData>(sessionId, "json")
 }
 
-const sessions = g.__repomind_sessions__
-
-export function getSession(sessionId: string): SessionData | undefined {
-  return sessions.get(sessionId)
+export async function setSession(sessionId: string, data: SessionData): Promise<void> {
+  const kv = getKV()
+  await kv.put(sessionId, JSON.stringify(data), {
+    expirationTtl: 3600, // 1 hour TTL — replaces the setInterval cleanup
+  })
 }
 
-export function setSession(sessionId: string, data: SessionData): void {
-  sessions.set(sessionId, data)
+export async function deleteSession(sessionId: string): Promise<void> {
+  const kv = getKV()
+  await kv.delete(sessionId)
 }
 
-export function deleteSession(sessionId: string): void {
-  sessions.delete(sessionId)
-}
-
-export function createSession(
+export async function createSession(
   context: string,
   metadata: RepoMetadata,
   tokenCount: number
-): string {
-  const sessionId = randomUUID()
-  sessions.set(sessionId, {
+): Promise<string> {
+  const sessionId = crypto.randomUUID()
+  await setSession(sessionId, {
     context,
     metadata,
     messages: [],
@@ -42,16 +40,4 @@ export function createSession(
     createdAt: Date.now(),
   })
   return sessionId
-}
-
-// Cleanup stale sessions every 10 minutes (1-hour TTL)
-if (!g.__repomind_cleanup__) {
-  g.__repomind_cleanup__ = setInterval(() => {
-    const now = Date.now()
-    for (const [id, session] of sessions) {
-      if (now - session.createdAt > 3600000) {
-        sessions.delete(id)
-      }
-    }
-  }, 600000)
 }

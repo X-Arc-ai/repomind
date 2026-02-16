@@ -2,12 +2,10 @@ import { NextResponse } from "next/server"
 import { ingestRepo, ingestPreloaded } from "@/lib/repo-ingester"
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 60
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
-    const { url, preloaded } = body
+    const { url, preloaded } = await req.json<{ url?: string; preloaded?: string }>()
 
     if (!url && !preloaded) {
       return NextResponse.json(
@@ -18,7 +16,7 @@ export async function POST(req: Request) {
 
     const result = preloaded
       ? await ingestPreloaded(preloaded)
-      : await ingestRepo(url)
+      : await ingestRepo(url!)
 
     return NextResponse.json(result)
   } catch (err) {

@@ -4,11 +4,10 @@ import { DIAGRAM_SYSTEM_PROMPT } from "@/lib/prompts"
 import { DiagramData } from "@/types"
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 120
 
 export async function POST(req: Request) {
   try {
-    const { sessionId, focus } = await req.json()
+    const { sessionId, focus } = await req.json<{ sessionId?: string; focus?: string }>()
 
     if (!sessionId) {
       return NextResponse.json(
@@ -17,7 +16,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const session = getSession(sessionId)
+    const session = await getSession(sessionId)
     if (!session) {
       return NextResponse.json(
         { error: "Session not found. Please ingest a repo first." },

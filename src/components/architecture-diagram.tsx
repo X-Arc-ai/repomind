@@ -94,7 +94,7 @@ export function ArchitectureDiagram({ sessionId }: ArchitectureDiagramProps) {
         body: JSON.stringify({ sessionId, focus: focus || undefined }),
       })
 
-      const data = await res.json()
+      const data = await res.json() as any
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to generate diagram")

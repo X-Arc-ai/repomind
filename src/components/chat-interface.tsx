@@ -84,7 +84,7 @@ export function ChatInterface({ sessionId, effort }: ChatInterfaceProps) {
       })
 
       if (!response.ok) {
-        const err = await response.json()
+        const err = await response.json() as any
         throw new Error(err.error || "Query failed")
       }
 

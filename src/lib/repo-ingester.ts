@@ -8,11 +8,63 @@ import {
 import { buildFileTree, buildContext } from "./context-builder"
 import { createSession } from "./anthropic"
 import { IngestResponse } from "@/types"
-import * as fs from "fs/promises"
-import * as path from "path"
-import { execSync } from "child_process"
 
-const REPO_CACHE_DIR = process.env.REPO_CACHE_DIR || "/tmp/repomind-repos"
+const GITHUB_API = "https://api.github.com"
+
+interface GitHubTreeItem {
+  path: string
+  mode: string
+  type: "blob" | "tree"
+  sha: string
+  size?: number
+  url: string
+}
+
+function getGitHubHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Accept": "application/vnd.github.v3+json",
+    "User-Agent": "RepoMind",
+  }
+  const token = process.env.GITHUB_TOKEN
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+  return headers
+}
+
+async function fetchRepoTree(owner: string, name: string): Promise<GitHubTreeItem[]> {
+  const headers = getGitHubHeaders()
+
+  const res = await fetch(
+    `${GITHUB_API}/repos/${owner}/${name}/git/trees/HEAD?recursive=1`,
+    { headers }
+  )
+
+  if (!res.ok) {
+    if (res.status === 404) throw new Error(`Repository ${owner}/${name} not found or is private.`)
+    throw new Error(`GitHub API error: ${res.status} ${res.statusText}`)
+  }
+
+  const data = await res.json() as { tree: GitHubTreeItem[]; truncated: boolean }
+  return data.tree.filter((item) => item.type === "blob")
+}
+
+async function fetchFileContent(owner: string, name: string, filePath: string): Promise<string> {
+  const headers = getGitHubHeaders()
+
+  const res = await fetch(
+    `${GITHUB_API}/repos/${owner}/${name}/contents/${encodeURIComponent(filePath)}`,
+    { headers }
+  )
+
+  if (!res.ok) return ""
+
+  const data = await res.json() as { encoding?: string; content?: string }
+  if (data.encoding === "base64" && data.content) {
+    return atob(data.content.replace(/\n/g, ""))
+  }
+  return ""
+}
 
 // Parse GitHub URL into owner/name
 export function parseGitHubUrl(url: string): { owner: string; name: string } | null {
@@ -27,90 +79,6 @@ export function parseGitHubUrl(url: string): { owner: string; name: string } | n
   return { owner: match[1], name: match[2] }
 }
 
-// Check if repo is already cached
-async function isCached(owner: string, name: string): Promise<boolean> {
-  try {
-    await fs.access(path.join(REPO_CACHE_DIR, owner, name, ".git"))
-    return true
-  } catch {
-    return false
-  }
-}
-
-// Shallow clone a GitHub repo
-async function cloneRepo(
-  owner: string,
-  name: string
-): Promise<string> {
-  const repoDir = path.join(REPO_CACHE_DIR, owner, name)
-
-  if (await isCached(owner, name)) {
-    return repoDir
-  }
-
-  // Ensure parent directory exists
-  await fs.mkdir(path.join(REPO_CACHE_DIR, owner), { recursive: true })
-
-  const url = `https://github.com/${owner}/${name}.git`
-  try {
-    execSync(`git clone --depth 1 "${url}" "${repoDir}"`, {
-      timeout: 120_000, // 2 minute timeout
-      stdio: "pipe",
-    })
-  } catch (err) {
-    throw new Error(
-      `Failed to clone ${owner}/${name}. Repository may not exist or is private.`
-    )
-  }
-
-  return repoDir
-}
-
-// Recursively walk directory and collect files
-async function walkDir(
-  dir: string,
-  baseDir: string,
-  files: FileEntry[]
-): Promise<void> {
-  const entries = await fs.readdir(dir, { withFileTypes: true })
-
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name)
-    const relativePath = path.relative(baseDir, fullPath)
-
-    if (shouldExcludePath(relativePath)) continue
-
-    if (entry.isDirectory()) {
-      await walkDir(fullPath, baseDir, files)
-    } else if (entry.isFile()) {
-      if (isBinaryFile(entry.name)) continue
-
-      try {
-        const stat = await fs.stat(fullPath)
-        // Skip files larger than 500KB entirely
-        if (stat.size > 500_000) continue
-
-        const content = await fs.readFile(fullPath, "utf-8")
-        // Skip files that look binary (contain null bytes)
-        if (content.includes("\0")) continue
-
-        const language = detectLanguage(relativePath)
-        const priority = getFilePriority(relativePath)
-
-        files.push({
-          path: relativePath,
-          content,
-          language,
-          size: stat.size,
-          priority,
-        })
-      } catch {
-        // Skip files that can't be read
-      }
-    }
-  }
-}
-
 // Full ingestion pipeline
 export async function ingestRepo(url: string): Promise<IngestResponse> {
   const parsed = parseGitHubUrl(url)
@@ -120,12 +88,48 @@ export async function ingestRepo(url: string): Promise<IngestResponse> {
 
   const { owner, name } = parsed
 
-  // Clone (or use cached)
-  const repoDir = await cloneRepo(owner, name)
+  // Fetch repo tree via GitHub API
+  const treeItems = await fetchRepoTree(owner, name)
 
-  // Walk file tree
+  // Filter files using existing prioritizer logic
+  const eligibleItems = treeItems.filter((item) => {
+    if (shouldExcludePath(item.path)) return false
+    if (isBinaryFile(item.path)) return false
+    // Skip files larger than 500KB
+    if (item.size && item.size > 500_000) return false
+    return true
+  })
+
+  // Fetch file contents in batches of 10 to respect rate limits
   const files: FileEntry[] = []
-  await walkDir(repoDir, repoDir, files)
+  const BATCH_SIZE = 10
+
+  for (let i = 0; i < eligibleItems.length; i += BATCH_SIZE) {
+    const batch = eligibleItems.slice(i, i + BATCH_SIZE)
+    const results = await Promise.all(
+      batch.map(async (item) => {
+        const content = await fetchFileContent(owner, name, item.path)
+        if (!content) return null
+        // Skip files that look binary (contain null bytes)
+        if (content.includes("\0")) return null
+
+        const language = detectLanguage(item.path)
+        const priority = getFilePriority(item.path)
+
+        return {
+          path: item.path,
+          content,
+          language,
+          size: item.size || content.length,
+          priority,
+        } as FileEntry
+      })
+    )
+
+    for (const file of results) {
+      if (file) files.push(file)
+    }
+  }
 
   // Build file tree string
   const fileTree = buildFileTree(files)
@@ -133,8 +137,8 @@ export async function ingestRepo(url: string): Promise<IngestResponse> {
   // Build context document
   const result = buildContext(owner, name, url, files, fileTree)
 
-  // Create session
-  const sessionId = createSession(
+  // Create session (now async — returns a Promise<string>)
+  const sessionId = await createSession(
     result.context,
     result.metadata,
     result.estimatedTokens
@@ -150,7 +154,7 @@ export async function ingestRepo(url: string): Promise<IngestResponse> {
   }
 }
 
-// Ingest from pre-loaded repos (same pipeline, just uses cached clone)
+// Ingest from pre-loaded repo aliases (delegates to ingestRepo)
 export async function ingestPreloaded(
   alias: string
 ): Promise<IngestResponse> {

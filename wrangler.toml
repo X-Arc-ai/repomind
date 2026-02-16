@@ -1,0 +1,16 @@
+name = "repomind"
+main = ".open-next/worker.js"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+
+[[kv_namespaces]]
+binding = "SESSIONS_KV"
+id = "<to-be-created>"
+preview_id = "<to-be-created>"
+
+[vars]
+# GITHUB_TOKEN set via `wrangler secret put GITHUB_TOKEN` for rate limit increase
+# ANTHROPIC_API_KEY set via `wrangler secret put ANTHROPIC_API_KEY`

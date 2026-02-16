@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic"
 
 export async function POST(req: Request) {
   try {
-    const { sessionId } = await req.json()
+    const { sessionId } = await req.json<{ sessionId?: string }>()
 
     if (!sessionId) {
       return NextResponse.json(
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const session = getSession(sessionId)
+    const session = await getSession(sessionId)
     if (!session) {
       return NextResponse.json(
         { error: "Session not found" },

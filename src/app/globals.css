@@ -124,3 +124,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-size: 200% 200%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+.animate-gradient {
+  animation: gradient-shift 3s ease infinite;
+}

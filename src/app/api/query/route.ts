@@ -2,6 +2,7 @@ import { getSession, setSession, anthropic } from "@/lib/anthropic"
 import { QA_SYSTEM_PROMPT } from "@/lib/prompts"
 
 export const dynamic = "force-dynamic"
+export const runtime = "edge"
 
 export async function POST(req: Request) {
   try {

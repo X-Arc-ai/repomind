@@ -4,6 +4,7 @@ import { DIAGRAM_SYSTEM_PROMPT } from "@/lib/prompts"
 import { DiagramData } from "@/types"
 
 export const dynamic = "force-dynamic"
+export const runtime = "edge"
 
 export async function POST(req: Request) {
   try {

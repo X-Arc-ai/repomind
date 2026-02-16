@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     // Always use beta endpoint for 1M context
     const response = await anthropic.beta.messages.create({
       model: "claude-opus-4-6",
-      max_tokens: 8000,
+      max_tokens: 16000,
       thinking: { type: "enabled", budget_tokens: 8000 },
       system: DIAGRAM_SYSTEM_PROMPT + "\n\n" + session.context,
       messages: [{ role: "user", content: userMessage }],

@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk"
 import { RepoMetadata, SessionData } from "@/types"
+import { randomUUID } from "crypto"
 
 export const anthropic = new Anthropic()
 
@@ -32,7 +33,7 @@ export function createSession(
   metadata: RepoMetadata,
   tokenCount: number
 ): string {
-  const sessionId = crypto.randomUUID()
+  const sessionId = randomUUID()
   sessions.set(sessionId, {
     context,
     metadata,

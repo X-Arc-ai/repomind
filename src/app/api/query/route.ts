@@ -30,31 +30,19 @@ export async function POST(req: Request) {
       { role: "user" as const, content: query },
     ]
 
-    // Use beta endpoint for 1M context if needed
-    const useBeta = session.tokenCount > 200_000
-
-    const streamParams = {
-      model: "claude-opus-4-6" as const,
+    // Always use beta endpoint for 1M context — repo contexts frequently
+    // exceed 200K when combined with system prompt
+    const stream = anthropic.beta.messages.stream({
+      model: "claude-opus-4-6",
       max_tokens: 16000,
-      thinking: { type: "enabled" as const, budget_tokens: 10000 },
+      thinking: { type: "enabled", budget_tokens: 10000 },
       system: QA_SYSTEM_PROMPT + "\n\n" + session.context,
       messages,
-    }
-
-    let stream: AsyncIterable<unknown>
-
-    if (useBeta) {
-      stream = anthropic.beta.messages.stream({
-        ...streamParams,
-        betas: ["interleaved-thinking-2025-05-14"],
-      }) as AsyncIterable<unknown>
-    } else {
-      stream = anthropic.messages.stream(streamParams) as AsyncIterable<unknown>
-    }
+      betas: ["context-1m-2025-08-07", "interleaved-thinking-2025-05-14"],
+    })
 
     const encoder = new TextEncoder()
     let fullText = ""
-    let fullThinking = ""
 
     const readable = new ReadableStream({
       async start(controller) {
@@ -81,7 +69,6 @@ export async function POST(req: Request) {
                 )
               } else if (delta.type === "thinking_delta") {
                 const thinking = delta.thinking as string
-                fullThinking += thinking
                 controller.enqueue(
                   encoder.encode(
                     `data: ${JSON.stringify({ type: "thinking", text: thinking })}\n\n`

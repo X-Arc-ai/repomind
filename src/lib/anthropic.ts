@@ -3,8 +3,17 @@ import { RepoMetadata, SessionData } from "@/types"
 
 export const anthropic = new Anthropic()
 
-// In-memory session storage
-const sessions = new Map<string, SessionData>()
+// Use globalThis to persist sessions across hot reloads and route handlers
+const g = globalThis as unknown as {
+  __repomind_sessions__?: Map<string, SessionData>
+  __repomind_cleanup__?: ReturnType<typeof setInterval>
+}
+
+if (!g.__repomind_sessions__) {
+  g.__repomind_sessions__ = new Map<string, SessionData>()
+}
+
+const sessions = g.__repomind_sessions__
 
 export function getSession(sessionId: string): SessionData | undefined {
   return sessions.get(sessionId)
@@ -35,19 +44,13 @@ export function createSession(
 }
 
 // Cleanup stale sessions every 10 minutes (1-hour TTL)
-if (typeof globalThis !== "undefined") {
-  const cleanup = () => {
+if (!g.__repomind_cleanup__) {
+  g.__repomind_cleanup__ = setInterval(() => {
     const now = Date.now()
     for (const [id, session] of sessions) {
       if (now - session.createdAt > 3600000) {
         sessions.delete(id)
       }
     }
-  }
-  // Avoid duplicate intervals in dev mode hot reload
-  const key = "__repomind_cleanup_interval__"
-  const g = globalThis as Record<string, unknown>
-  if (!g[key]) {
-    g[key] = setInterval(cleanup, 600000)
-  }
+  }, 600000)
 }

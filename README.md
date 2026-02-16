@@ -14,8 +14,7 @@ RepoMind is an AI-powered repository exploration tool that loads entire codebase
 
 ## Demo
 
-- **Landing Page**: [View Demo](http://24.144.89.160:3001/)
-- **Live Tool**: [Try It](http://24.144.89.160:3001/explore)
+Coming soon! The live demo will be available once deployed to Cloudflare Pages.
 
 ## Quick Start
 

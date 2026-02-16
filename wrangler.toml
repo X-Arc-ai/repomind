@@ -8,7 +8,7 @@ directory = ".open-next/assets"
 
 [[kv_namespaces]]
 binding = "SESSIONS_KV"
-id = "<to-be-created>"
+id = "7ffa87965da344519bc28db9287f1504"
 preview_id = "<to-be-created>"
 
 [vars]

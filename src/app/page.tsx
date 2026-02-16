@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Header } from "@/components/header"
+import { RecentlyExplored } from "@/components/recently-explored"
 import {
   Brain,
   ArrowRight,
@@ -124,6 +125,9 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {/* Recently Explored */}
+        <RecentlyExplored />
 
         {/* Features */}
         <section className="border-t bg-muted/30">

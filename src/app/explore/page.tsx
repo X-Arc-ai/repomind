@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Header } from "@/components/header"
 import { RepoInput } from "@/components/repo-input"
+import { saveRecentRepo } from "@/components/recently-explored"
 import { TokenCounter } from "@/components/token-counter"
 import { ChatInterface } from "@/components/chat-interface"
 import { ArchitectureDiagram } from "@/components/architecture-diagram"
@@ -28,6 +29,16 @@ export default function ExplorePage() {
     setSessionId(newSessionId)
     setMetadata(newMetadata)
     setTokenCount((newMetadata.totalTokens as number) || 0)
+
+    // Save to recently explored
+    const repoName = (newMetadata.repoName as string) || (newMetadata.name as string) || "Unknown Repo"
+    const repoUrl = (newMetadata.repoUrl as string) || (newMetadata.url as string) || ""
+    saveRecentRepo({
+      name: repoName,
+      url: repoUrl,
+      stars: (newMetadata.stars as number) || 0,
+      summary: (newMetadata.description as string) || `${(newMetadata.fileCount as number) || 0} files analyzed`,
+    })
   }
 
   return (

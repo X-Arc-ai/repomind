@@ -1,10 +1,21 @@
 "use client"
 
 import Link from "next/link"
-import { Brain } from "lucide-react"
+import { Brain, Settings } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { SettingsDialog } from "@/components/settings-dialog"
+import { Button } from "@/components/ui/button"
 
-export function Header() {
+interface HeaderProps {
+  apiKey?: string
+  onApiKeyChange?: (key: string) => void
+  settingsOpen?: boolean
+  onSettingsOpenChange?: (open: boolean) => void
+}
+
+export function Header({ apiKey, onApiKeyChange, settingsOpen, onSettingsOpenChange }: HeaderProps = {}) {
+  const showSettings = onApiKeyChange !== undefined && onSettingsOpenChange !== undefined
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
@@ -19,9 +30,27 @@ export function Header() {
           >
             Explore
           </Link>
+          {showSettings && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Settings"
+              onClick={() => onSettingsOpenChange(true)}
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+          )}
           <ThemeToggle />
         </div>
       </div>
+      {showSettings && (
+        <SettingsDialog
+          apiKey={apiKey ?? ""}
+          onApiKeyChange={onApiKeyChange}
+          open={settingsOpen ?? false}
+          onOpenChange={onSettingsOpenChange}
+        />
+      )}
     </header>
   )
 }

@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "src/app/api/query/route.ts": { "maxDuration": 60 },
+    "src/app/api/diagram/route.ts": { "maxDuration": 60 },
+    "src/app/api/ingest/route.ts": { "maxDuration": 60 },
+    "src/app/api/count-tokens/route.ts": { "maxDuration": 30 }
+  }
+}

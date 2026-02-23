@@ -37,9 +37,10 @@ const SUGGESTED_QUESTIONS = [
 interface ChatInterfaceProps {
   sessionId: string | null
   effort: string
+  apiKey: string
 }
 
-export function ChatInterface({ sessionId, effort }: ChatInterfaceProps) {
+export function ChatInterface({ sessionId, effort, apiKey }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
@@ -77,9 +78,11 @@ export function ChatInterface({ sessionId, effort }: ChatInterfaceProps) {
     setIsStreaming(true)
 
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (apiKey) headers["x-api-key"] = apiKey
       const response = await fetch("/api/query", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ sessionId, query, effort }),
       })
 

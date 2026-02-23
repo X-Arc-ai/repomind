@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { RepoInput } from "@/components/repo-input"
 import { saveRecentRepo } from "@/components/recently-explored"
@@ -9,7 +9,7 @@ import { ChatInterface } from "@/components/chat-interface"
 import { ArchitectureDiagram } from "@/components/architecture-diagram"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { MessageSquare, Network, FileCode, Brain } from "lucide-react"
+import { MessageSquare, Network, FileCode, Brain, Key } from "lucide-react"
 
 const EFFORT_LEVELS = [
   { value: "low", label: "Quick", desc: "Fast, brief answers" },
@@ -24,6 +24,16 @@ export default function ExplorePage() {
   const [metadata, setMetadata] = useState<Record<string, unknown> | null>(null)
   const [effort, setEffort] = useState("high")
   const [activeTab, setActiveTab] = useState("chat")
+  const [apiKey, setApiKey] = useState("")
+
+  useEffect(() => {
+    setApiKey(localStorage.getItem("repomind-api-key") || "")
+  }, [])
+
+  const handleApiKeyChange = (key: string) => {
+    setApiKey(key)
+    localStorage.setItem("repomind-api-key", key)
+  }
 
   const handleIngest = (newSessionId: string, newMetadata: Record<string, unknown>) => {
     setSessionId(newSessionId)
@@ -51,11 +61,19 @@ export default function ExplorePage() {
           onIngest={handleIngest}
           isLoading={isLoading}
           setIsLoading={setIsLoading}
+          apiKey={apiKey}
+          onApiKeyChange={handleApiKeyChange}
         />
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <TokenCounter tokenCount={tokenCount} isLoading={isLoading} />
           </div>
+          {apiKey && sessionId && (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+              <Key className="h-3 w-3" />
+              <span>Using your API key</span>
+            </div>
+          )}
           {metadata && (
             <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
               <FileCode className="h-3.5 w-3.5" />
@@ -113,7 +131,7 @@ export default function ExplorePage() {
               <span className="text-sm font-medium">Chat</span>
             </div>
             <div className="h-[calc(100%-41px)]">
-              <ChatInterface sessionId={sessionId} effort={effort} />
+              <ChatInterface sessionId={sessionId} effort={effort} apiKey={apiKey} />
             </div>
           </div>
           <div className="h-full overflow-hidden">
@@ -122,7 +140,7 @@ export default function ExplorePage() {
               <span className="text-sm font-medium">Architecture</span>
             </div>
             <div className="h-[calc(100%-41px)]">
-              <ArchitectureDiagram sessionId={sessionId} />
+              <ArchitectureDiagram sessionId={sessionId} apiKey={apiKey} />
             </div>
           </div>
         </div>
@@ -141,10 +159,10 @@ export default function ExplorePage() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="chat" className="flex-1 overflow-hidden mt-0">
-              <ChatInterface sessionId={sessionId} effort={effort} />
+              <ChatInterface sessionId={sessionId} effort={effort} apiKey={apiKey} />
             </TabsContent>
             <TabsContent value="diagram" className="flex-1 overflow-hidden mt-0">
-              <ArchitectureDiagram sessionId={sessionId} />
+              <ArchitectureDiagram sessionId={sessionId} apiKey={apiKey} />
             </TabsContent>
           </Tabs>
         </div>

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
-import { getSession, anthropic } from "@/lib/anthropic"
+import { getSession } from "@/lib/session-store"
+import { getAnthropicClient } from "@/lib/anthropic"
 
 export const dynamic = "force-dynamic"
-export const runtime = "edge"
 
 export async function POST(req: Request) {
   try {
-    const { sessionId } = await req.json<{ sessionId?: string }>()
+    const { sessionId } = await req.json() as { sessionId?: string }
 
     if (!sessionId) {
       return NextResponse.json(
@@ -22,6 +22,8 @@ export async function POST(req: Request) {
         { status: 404 }
       )
     }
+
+    const anthropic = getAnthropicClient(req)
 
     const result = await anthropic.messages.countTokens({
       model: "claude-opus-4-6",

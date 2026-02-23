@@ -10,18 +10,15 @@ RepoMind is an AI-powered repository exploration tool that loads entire codebase
 - **Adaptive Thinking** — Claude Opus 4.6's extended thinking for deep reasoning
 - **Interactive Architecture Diagrams** — Auto-generated diagrams showing module dependencies
 - **Streaming Responses** — Watch reasoning happen in real-time with specific file:line references
+- **BYOK (Bring Your Own Key)** — Optionally provide your own Anthropic API key in the UI
 - **Multi-Viewport Ready** — Responsive design works on desktop, tablet, and mobile
-
-## Demo
-
-Coming soon! The live demo will be available once deployed to Cloudflare Pages.
 
 ## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+ or 20.x
-- Anthropic API key ([Get one here](https://console.anthropic.com/))
+- Anthropic API key ([Get one here](https://console.anthropic.com/)) — or users can provide their own via BYOK
 
 ### Installation
 
@@ -68,23 +65,36 @@ npm start
    - Click "Generate" in the Architecture tab
    - Optionally specify a focus area (e.g., "routing system")
 
+4. **Bring Your Own Key (Optional)**
+   - Enter your Anthropic API key in the input field at the top
+   - The key is stored in your browser's localStorage — never sent to our servers
+   - If left blank, the server's API key is used
+
 ## Deployment
 
-### Cloudflare Pages
+### Vercel (Recommended)
 
-1. **Build Settings**:
-   - Build command: `npm run build`
-   - Output directory: `.next`
-   - Framework: Next.js
+The easiest way to deploy RepoMind:
 
-2. **Environment Variables**:
-   - `ANTHROPIC_API_KEY` — Your Claude API key
-   - `NODE_VERSION` — `20` (optional)
+1. Push your repo to GitHub
+2. Import the project on [vercel.com](https://vercel.com)
+3. Set environment variables:
+   - `ANTHROPIC_API_KEY` — Your Claude API key (optional if all users bring their own)
+   - `GITHUB_TOKEN` — Optional, increases GitHub API rate limits
+4. Deploy
+
+Or deploy via CLI:
+
+```bash
+npm i -g vercel
+vercel
+```
+
+See `.env.example` for all available environment variables.
 
 ### Other Platforms
 
 RepoMind is a standard Next.js 16 app and can be deployed to any platform that supports Next.js:
-- Vercel
 - Netlify
 - AWS Amplify
 - Railway

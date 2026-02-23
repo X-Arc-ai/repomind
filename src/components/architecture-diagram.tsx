@@ -71,9 +71,10 @@ function layoutDiagram(data: DiagramData) {
 
 interface ArchitectureDiagramProps {
   sessionId: string | null
+  apiKey: string
 }
 
-export function ArchitectureDiagram({ sessionId }: ArchitectureDiagramProps) {
+export function ArchitectureDiagram({ sessionId, apiKey }: ArchitectureDiagramProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const [focus, setFocus] = useState("")
@@ -88,9 +89,11 @@ export function ArchitectureDiagram({ sessionId }: ArchitectureDiagramProps) {
     setError("")
 
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (apiKey) headers["x-api-key"] = apiKey
       const res = await fetch("/api/diagram", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ sessionId, focus: focus || undefined }),
       })
 

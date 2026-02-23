@@ -2,11 +2,10 @@ import { NextResponse } from "next/server"
 import { ingestRepo, ingestPreloaded } from "@/lib/repo-ingester"
 
 export const dynamic = "force-dynamic"
-export const runtime = "edge"
 
 export async function POST(req: Request) {
   try {
-    const { url, preloaded } = await req.json<{ url?: string; preloaded?: string }>()
+    const { url, preloaded } = await req.json() as { url?: string; preloaded?: string }
 
     if (!url && !preloaded) {
       return NextResponse.json(

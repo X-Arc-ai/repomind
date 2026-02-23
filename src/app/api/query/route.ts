@@ -1,12 +1,12 @@
-import { getSession, setSession, anthropic } from "@/lib/anthropic"
+import { getSession, setSession } from "@/lib/session-store"
+import { getAnthropicClient } from "@/lib/anthropic"
 import { QA_SYSTEM_PROMPT } from "@/lib/prompts"
 
 export const dynamic = "force-dynamic"
-export const runtime = "edge"
 
 export async function POST(req: Request) {
   try {
-    const { sessionId, query, effort = "high" } = await req.json<{ sessionId?: string; query?: string; effort?: string }>()
+    const { sessionId, query, effort = "high" } = await req.json() as { sessionId?: string; query?: string; effort?: string }
 
     if (!sessionId || !query) {
       return new Response(
@@ -22,6 +22,8 @@ export async function POST(req: Request) {
         { status: 404, headers: { "Content-Type": "application/json" } }
       )
     }
+
+    const anthropic = getAnthropicClient(req)
 
     // Build messages array with conversation history
     const messages = [
@@ -83,7 +85,7 @@ export async function POST(req: Request) {
             }
           }
 
-          // Update conversation history and persist to KV
+          // Update conversation history and persist
           session.messages.push(
             { role: "user", content: query },
             { role: "assistant", content: fullText }

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server"
-import { getSession, anthropic } from "@/lib/anthropic"
+import { getSession } from "@/lib/session-store"
+import { getAnthropicClient } from "@/lib/anthropic"
 import { DIAGRAM_SYSTEM_PROMPT } from "@/lib/prompts"
 import { DiagramData } from "@/types"
 
 export const dynamic = "force-dynamic"
-export const runtime = "edge"
 
 export async function POST(req: Request) {
   try {
-    const { sessionId, focus } = await req.json<{ sessionId?: string; focus?: string }>()
+    const { sessionId, focus } = await req.json() as { sessionId?: string; focus?: string }
 
     if (!sessionId) {
       return NextResponse.json(
@@ -24,6 +24,8 @@ export async function POST(req: Request) {
         { status: 404 }
       )
     }
+
+    const anthropic = getAnthropicClient(req)
 
     const userMessage = focus
       ? `Generate an architecture diagram focused on: ${focus}`

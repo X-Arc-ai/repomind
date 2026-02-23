@@ -6,7 +6,7 @@ import {
   getFilePriority,
 } from "./file-prioritizer"
 import { buildFileTree, buildContext } from "./context-builder"
-import { createSession } from "./anthropic"
+import { createSession } from "./session-store"
 import { IngestResponse } from "@/types"
 
 const GITHUB_API = "https://api.github.com"

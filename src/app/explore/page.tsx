@@ -9,6 +9,7 @@ import { ChatInterface } from "@/components/chat-interface"
 import { ArchitectureDiagram } from "@/components/architecture-diagram"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { MessageSquare, Network, FileCode, Brain, Key } from "lucide-react"
 
 const EFFORT_LEVELS = [
@@ -25,6 +26,7 @@ export default function ExplorePage() {
   const [effort, setEffort] = useState("high")
   const [activeTab, setActiveTab] = useState("chat")
   const [apiKey, setApiKey] = useState("")
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
     setApiKey(localStorage.getItem("repomind-api-key") || "")
@@ -53,7 +55,12 @@ export default function ExplorePage() {
 
   return (
     <div className="h-screen flex flex-col">
-      <Header />
+      <Header
+        apiKey={apiKey}
+        onApiKeyChange={handleApiKeyChange}
+        settingsOpen={settingsOpen}
+        onSettingsOpenChange={setSettingsOpen}
+      />
 
       {/* Repo Input Bar */}
       <div className="border-b px-4 py-3 space-y-2">
@@ -62,18 +69,11 @@ export default function ExplorePage() {
           isLoading={isLoading}
           setIsLoading={setIsLoading}
           apiKey={apiKey}
-          onApiKeyChange={handleApiKeyChange}
         />
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <TokenCounter tokenCount={tokenCount} isLoading={isLoading} />
           </div>
-          {apiKey && sessionId && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-              <Key className="h-3 w-3" />
-              <span>Using your API key</span>
-            </div>
-          )}
           {metadata && (
             <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
               <FileCode className="h-3.5 w-3.5" />
@@ -122,7 +122,27 @@ export default function ExplorePage() {
       </div>
 
       {/* Main content area */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
+        {/* API Key Required Overlay */}
+        {!apiKey && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-4 max-w-sm text-center p-6">
+              <div className="rounded-full bg-muted p-3">
+                <Key className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">API Key Required</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Add your Anthropic API key in Settings to start exploring repositories.
+                </p>
+              </div>
+              <Button onClick={() => setSettingsOpen(true)}>
+                Open Settings
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Desktop: side-by-side */}
         <div className="hidden md:grid md:grid-cols-2 h-full divide-x">
           <div className="h-full overflow-hidden">
